@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cal-AIM CHW Referral Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <style>
         * {
             margin: 0;
@@ -1042,6 +1043,12 @@
         });
 
         function getSupabaseConfig() {
+            // Check for config.js first (for Vercel deployment)
+            if (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey) {
+                document.getElementById('setupModal').classList.add('hidden');
+                return { url: SUPABASE_CONFIG.url, key: SUPABASE_CONFIG.anonKey };
+            }
+            // Fall back to localStorage (for local development)
             const url = localStorage.getItem('supabaseUrl');
             const key = localStorage.getItem('supabaseKey');
             if (url && key) {
