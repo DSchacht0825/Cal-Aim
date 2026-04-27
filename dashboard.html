@@ -1031,8 +1031,14 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Dashboard loading...');
+            console.log('SUPABASE_CONFIG exists:', typeof SUPABASE_CONFIG !== 'undefined');
+
             const config = getSupabaseConfig();
+            console.log('Config:', config ? 'Found' : 'Not found');
+
             if (config) {
+                console.log('Connecting to:', config.url);
                 await initSupabase(config.url, config.key);
             }
 
@@ -1076,10 +1082,15 @@
         async function initSupabase(url, key) {
             try {
                 showLoading(true);
+                console.log('Creating Supabase client...');
                 supabase = window.supabase.createClient(url, key);
+                console.log('Supabase client created');
 
                 // Test connection
+                console.log('Testing connection to referrals table...');
                 const { data, error } = await supabase.from('referrals').select('id').limit(1);
+
+                console.log('Response - data:', data, 'error:', error);
 
                 if (error) throw error;
 
@@ -1089,6 +1100,7 @@
                 showToast('Connected to database', 'success');
             } catch (error) {
                 console.error('Connection error:', error);
+                console.error('Error details:', JSON.stringify(error, null, 2));
                 updateConnectionStatus(false);
                 showToast('Connection failed: ' + error.message, 'error');
                 // Show setup modal again
