@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cal-AIM CHW Referral Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .worker-select {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .worker-select label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .worker-select select {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+            min-width: 150px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: white;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            background: #e8e8e8;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-section {
+            display: none;
+        }
+
+        .dashboard-section.active {
+            display: block;
+        }
+
+        .date-filter {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .date-filter label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .date-filter input {
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .date-filter button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .date-filter button:hover {
+            background: #5a6fd6;
+        }
+
+        .date-filter .reset-btn {
+            background: #e8e8e8;
+            color: #666;
+        }
+
+        .date-filter .reset-btn:hover {
+            background: #ddd;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .card-icon.blue { background: #e8f0fe; }
+        .card-icon.green { background: #e6f4ea; }
+        .card-icon.orange { background: #fef3e8; }
+        .card-icon.purple { background: #f3e8fe; }
+        .card-icon.red { background: #fee8e8; }
+
+        .card-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .chart-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .chart-card h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .bar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bar-label {
+            width: 120px;
+            font-size: 13px;
+            color: #666;
+            flex-shrink: 0;
+        }
+
+        .bar-container {
+            flex: 1;
+            height: 24px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .bar-value {
+            width: 50px;
+            text-align: right;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Data Entry Form */
+        .entry-section {
+            display: none;
+        }
+
+        .entry-section.active {
+            display: block;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+        }
+
+        .form-card h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group.full-width {
+            grid-column: span 3;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd6;
+        }
+
+        .btn-secondary {
+            background: #e8e8e8;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #ddd;
+        }
+
+        /* Records Table */
+        .records-section {
+            display: none;
+        }
+
+        .records-section.active {
+            display: block;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .table-header h2 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-box input {
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 250px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            font-size: 14px;
+            color: #333;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-active { background: #e6f4ea; color: #1e7e34; }
+        .status-discharged { background: #f8d7da; color: #721c24; }
+        .status-inprocess { background: #fff3cd; color: #856404; }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+
+        .action-btn.edit {
+            background: #e8f0fe;
+            color: #667eea;
+        }
+
+        .action-btn.delete {
+            background: #fee8e8;
+            color: #dc3545;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 16px 24px;
+            background: #333;
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background: #28a745;
+        }
+
+        .toast.error {
+            background: #dc3545;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                padding: 20px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group.full-width {
+                grid-column: span 1;
+            }
+
+            .chart-section {
+                grid-template-columns: 1fr;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Cal-AIM CHW Referral Tracker</h1>
+        <div class="worker-select">
+            <label for="currentWorker">Current Worker:</label>
+            <select id="currentWorker">
+                <option value="">Select Worker</option>
+                <option value="Sabrina">Sabrina</option>
+                <option value="Katrina">Katrina</option>
+                <option value="Deborah">Deborah</option>
+                <option value="Tanyua">Tanyua</option>
+                <option value="Delilah">Delilah</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" data-tab="dashboard">Dashboard</button>
+            <button class="tab" data-tab="entry">New Referral</button>
+            <button class="tab" data-tab="records">All Records</button>
+        </div>
+
+        <!-- Dashboard Section -->
+        <section class="dashboard-section active" id="dashboard">
+            <div class="date-filter">
+                <label>From:</label>
+                <input type="date" id="dateFrom">
+                <label>To:</label>
+                <input type="date" id="dateTo">
+                <button onclick="applyDateFilter()">Apply Filter</button>
+                <button class="reset-btn" onclick="resetDateFilter()">Reset</button>
+            </div>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Total Referrals</span>
+                        <div class="card-icon blue">&#128203;</div>
+                    </div>
+                    <div class="card-value" id="totalReferrals">0</div>
+                    <div class="card-subtitle">All time</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Active</span>
+                        <div class="card-icon green">&#10003;</div>
+                    </div>
+                    <div class="card-value" id="activeReferrals">0</div>
+                    <div class="card-subtitle">Currently enrolled</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">In Process</span>
+                        <div class="card-icon orange">&#8987;</div>
+                    </div>
+                    <div class="card-value" id="inProcessReferrals">0</div>
+                    <div class="card-subtitle">Pending approval</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Approved</span>
+                        <div class="card-icon purple">&#128077;</div>
+                    </div>
+                    <div class="card-value" id="approvedReferrals">0</div>
+                    <div class="card-subtitle">Care plans approved</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Discharged</span>
+                        <div class="card-icon red">&#128682;</div>
+                    </div>
+                    <div class="card-value" id="dischargedReferrals">0</div>
+                    <div class="card-subtitle">Completed cases</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <div class="chart-card">
+                    <h3>Referrals by Health Plan</h3>
+                    <div class="bar-chart" id="healthPlanChart"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>Referrals by Location</h3>
+                    <div class="bar-chart" id="locationChart"></div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <div class="chart-card">
+                    <h3>Referrals by Worker</h3>
+                    <div class="bar-chart" id="workerChart"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>Referrals by Type</h3>
+                    <div class="bar-chart" id="typeChart"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Entry Section -->
+        <section class="entry-section" id="entry">
+            <div class="form-card">
+                <h2>Add New Referral</h2>
+                <form id="referralForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="enrollmentDate">Enrollment Date *</label>
+                            <input type="date" id="enrollmentDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="memberName">Member Name *</label>
+                            <input type="text" id="memberName" placeholder="Full name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dob">Date of Birth</label>
+                            <input type="date" id="dob">
+                        </div>
+                        <div class="form-group">
+                            <label for="clientId">Client ID / CIN</label>
+                            <input type="text" id="clientId" placeholder="Enter ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="phoneNumber">Phone Number</label>
+                            <input type="tel" id="phoneNumber" placeholder="(xxx) xxx-xxxx">
+                        </div>
+                        <div class="form-group">
+                            <label for="healthPlan">Health Plan *</label>
+                            <select id="healthPlan" required>
+                                <option value="">Select Plan</option>
+                                <option value="CHG">CHG</option>
+                                <option value="Molina">Molina</option>
+                                <option value="BSP">BSP</option>
+                                <option value="Kaiser">Kaiser</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="referralType">Referral Type *</label>
+                            <select id="referralType" required>
+                                <option value="">Select Type</option>
+                                <option value="CS">CS</option>
+                                <option value="ECM">ECM</option>
+                                <option value="CHW">CHW</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="referredBy">Referred By</label>
+                            <select id="referredBy">
+                                <option value="">Select Source</option>
+                                <option value="NN">NN</option>
+                                <option value="SDRM">SDRM</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="location">Location *</label>
+                            <select id="location" required>
+                                <option value="">Select Location</option>
+                                <option value="Encinitas">Encinitas</option>
+                                <option value="San Diego">San Diego</option>
+                                <option value="SCL">SCL</option>
+                                <option value="MA">MA</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="primaryPOF">Primary Population of Focus *</label>
+                            <select id="primaryPOF" required>
+                                <option value="">Select Population</option>
+                                <option value="Adult - Serious Mental Illness/Substance Use Disorder">Adult - Serious Mental Illness/SUD</option>
+                                <option value="Adult - At risk Hospitalization/ED Utilization">Adult - At Risk Hospitalization/ED</option>
+                                <option value="Adult - Homeless Without Family">Adult - Homeless Without Family</option>
+                                <option value="Single Adult Experiencing Homelessness">Single Adult Experiencing Homelessness</option>
+                                <option value="Family Experiencing Homelessness">Family Experiencing Homelessness</option>
+                                <option value="Individuals at Risk for Avoidable Hospital or ED Utilization">At Risk for Avoidable Hospital/ED</option>
+                                <option value="Individuals with Serious Mental Health and/or SUD Needs">Serious Mental Health/SUD Needs</option>
+                                <option value="Individuals Transitioning to Community from Incarceration">Transitioning from Incarceration</option>
+                                <option value="Adults at Risk for LTC Institutionalization">At Risk for LTC Institutionalization</option>
+                                <option value="Nursing Facility Residents Transitioning to Community">Nursing Facility Transitioning</option>
+                                <option value="Children/Youth involved in Child Welfare">Children/Youth in Child Welfare</option>
+                                <option value="Adults aged out of Foster Care">Adults Aged Out of Foster Care</option>
+                                <option value="Birth Equity">Birth Equity</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="secondaryPOF">Secondary Population of Focus</label>
+                            <select id="secondaryPOF">
+                                <option value="">Select Population (Optional)</option>
+                                <option value="Adult - Serious Mental Illness/Substance Use Disorder">Adult - Serious Mental Illness/SUD</option>
+                                <option value="Adult - At risk Hospitalization/ED Utilization">Adult - At Risk Hospitalization/ED</option>
+                                <option value="Adult - Homeless Without Family">Adult - Homeless Without Family</option>
+                                <option value="Single Adult Experiencing Homelessness">Single Adult Experiencing Homelessness</option>
+                                <option value="Family Experiencing Homelessness">Family Experiencing Homelessness</option>
+                                <option value="Individuals at Risk for Avoidable Hospital or ED Utilization">At Risk for Avoidable Hospital/ED</option>
+                                <option value="Individuals with Serious Mental Health and/or SUD Needs">Serious Mental Health/SUD Needs</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="carePlan">Care Plan Status</label>
+                            <select id="carePlan">
+                                <option value="">Select Status</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Denied">Denied</option>
+                                <option value="In Process">In Process</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="referralStatus">Referral Status *</label>
+                            <select id="referralStatus" required>
+                                <option value="">Select Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Discharged">Discharged</option>
+                                <option value="In Process">In Process</option>
+                                <option value="Closed">Closed</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="notes">Notes (Reason for Referral)</label>
+                            <textarea id="notes" placeholder="Enter any relevant notes about this referral..."></textarea>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Referral</button>
+                        <button type="reset" class="btn btn-secondary">Clear Form</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Records Section -->
+        <section class="records-section" id="records">
+            <div class="table-card">
+                <div class="table-header">
+                    <h2>All Referral Records</h2>
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search records..." onkeyup="filterRecords()">
+                        <button class="btn btn-primary" onclick="exportToCSV()">Export CSV</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Member</th>
+                                <th>Health Plan</th>
+                                <th>Type</th>
+                                <th>Location</th>
+                                <th>Worker</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Data storage
+        let referrals = JSON.parse(localStorage.getItem('calAimReferrals')) || [];
+        let currentWorker = localStorage.getItem('currentWorker') || '';
+        let dateFilter = { from: null, to: null };
+        let editingId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (currentWorker) {
+                document.getElementById('currentWorker').value = currentWorker;
+            }
+            document.getElementById('enrollmentDate').valueAsDate = new Date();
+            updateDashboard();
+            renderRecords();
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                const tabName = tab.dataset.tab;
+                document.querySelectorAll('.dashboard-section, .entry-section, .records-section').forEach(s => s.classList.remove('active'));
+                document.getElementById(tabName).classList.add('active');
+            });
+        });
+
+        // Worker selection
+        document.getElementById('currentWorker').addEventListener('change', (e) => {
+            currentWorker = e.target.value;
+            localStorage.setItem('currentWorker', currentWorker);
+            showToast('Worker set to ' + currentWorker, 'success');
+        });
+
+        // Form submission
+        document.getElementById('referralForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            if (!currentWorker) {
+                showToast('Please select a worker first', 'error');
+                return;
+            }
+
+            const referral = {
+                id: editingId || Date.now(),
+                enrollmentDate: document.getElementById('enrollmentDate').value,
+                memberName: document.getElementById('memberName').value,
+                dob: document.getElementById('dob').value,
+                clientId: document.getElementById('clientId').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                healthPlan: document.getElementById('healthPlan').value,
+                referralType: document.getElementById('referralType').value,
+                referredBy: document.getElementById('referredBy').value,
+                location: document.getElementById('location').value,
+                primaryPOF: document.getElementById('primaryPOF').value,
+                secondaryPOF: document.getElementById('secondaryPOF').value,
+                carePlan: document.getElementById('carePlan').value,
+                referralStatus: document.getElementById('referralStatus').value,
+                notes: document.getElementById('notes').value,
+                worker: currentWorker,
+                createdAt: editingId ? referrals.find(r => r.id === editingId)?.createdAt : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            if (editingId) {
+                const index = referrals.findIndex(r => r.id === editingId);
+                referrals[index] = referral;
+                editingId = null;
+                showToast('Referral updated successfully', 'success');
+            } else {
+                referrals.push(referral);
+                showToast('Referral saved successfully', 'success');
+            }
+
+            localStorage.setItem('calAimReferrals', JSON.stringify(referrals));
+            document.getElementById('referralForm').reset();
+            document.getElementById('enrollmentDate').valueAsDate = new Date();
+            updateDashboard();
+            renderRecords();
+        });
+
+        // Date filter
+        function applyDateFilter() {
+            dateFilter.from = document.getElementById('dateFrom').value;
+            dateFilter.to = document.getElementById('dateTo').value;
+            updateDashboard();
+            showToast('Filter applied', 'success');
+        }
+
+        function resetDateFilter() {
+            dateFilter = { from: null, to: null };
+            document.getElementById('dateFrom').value = '';
+            document.getElementById('dateTo').value = '';
+            updateDashboard();
+            showToast('Filter reset', 'success');
+        }
+
+        function getFilteredReferrals() {
+            return referrals.filter(r => {
+                if (dateFilter.from && r.enrollmentDate < dateFilter.from) return false;
+                if (dateFilter.to && r.enrollmentDate > dateFilter.to) return false;
+                return true;
+            });
+        }
+
+        // Dashboard update
+        function updateDashboard() {
+            const filtered = getFilteredReferrals();
+
+            // Summary cards
+            document.getElementById('totalReferrals').textContent = filtered.length;
+            document.getElementById('activeReferrals').textContent = filtered.filter(r => r.referralStatus === 'Active').length;
+            document.getElementById('inProcessReferrals').textContent = filtered.filter(r => r.referralStatus === 'In Process').length;
+            document.getElementById('approvedReferrals').textContent = filtered.filter(r => r.carePlan === 'Approved').length;
+            document.getElementById('dischargedReferrals').textContent = filtered.filter(r => r.referralStatus === 'Discharged').length;
+
+            // Charts
+            renderBarChart('healthPlanChart', groupBy(filtered, 'healthPlan'), ['#667eea', '#764ba2', '#f093fb', '#f5576c']);
+            renderBarChart('locationChart', groupBy(filtered, 'location'), ['#4facfe', '#00f2fe', '#43e97b', '#38f9d7']);
+            renderBarChart('workerChart', groupBy(filtered, 'worker'), ['#fa709a', '#fee140', '#30cfd0', '#667eea']);
+            renderBarChart('typeChart', groupBy(filtered, 'referralType'), ['#a18cd1', '#fbc2eb', '#ffecd2', '#fcb69f']);
+        }
+
+        function groupBy(arr, key) {
+            return arr.reduce((acc, item) => {
+                const val = item[key] || 'Unknown';
+                acc[val] = (acc[val] || 0) + 1;
+                return acc;
+            }, {});
+        }
+
+        function renderBarChart(containerId, data, colors) {
+            const container = document.getElementById(containerId);
+            const max = Math.max(...Object.values(data), 1);
+            const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+
+            container.innerHTML = entries.length === 0
+                ? '<p style="color: #888; font-size: 14px;">No data available</p>'
+                : entries.map(([label, value], i) => `
+                    <div class="bar-item">
+                        <span class="bar-label">${label}</span>
+                        <div class="bar-container">
+                            <div class="bar" style="width: ${(value / max) * 100}%; background: ${colors[i % colors.length]};"></div>
+                        </div>
+                        <span class="bar-value">${value}</span>
+                    </div>
+                `).join('');
+        }
+
+        // Records table
+        function renderRecords() {
+            const tbody = document.getElementById('recordsTable');
+            const sorted = [...referrals].sort((a, b) => new Date(b.enrollmentDate) - new Date(a.enrollmentDate));
+
+            tbody.innerHTML = sorted.length === 0
+                ? '<tr><td colspan="8" style="text-align: center; color: #888;">No records yet</td></tr>'
+                : sorted.map(r => `
+                    <tr data-id="${r.id}">
+                        <td>${formatDate(r.enrollmentDate)}</td>
+                        <td>${r.memberName}</td>
+                        <td>${r.healthPlan}</td>
+                        <td>${r.referralType}</td>
+                        <td>${r.location}</td>
+                        <td>${r.worker}</td>
+                        <td><span class="status-badge status-${r.referralStatus.toLowerCase().replace(' ', '')}">${r.referralStatus}</span></td>
+                        <td>
+                            <button class="action-btn edit" onclick="editRecord(${r.id})">Edit</button>
+                            <button class="action-btn delete" onclick="deleteRecord(${r.id})">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function filterRecords() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#recordsTable tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(search) ? '' : 'none';
+            });
+        }
+
+        function editRecord(id) {
+            const record = referrals.find(r => r.id === id);
+            if (!record) return;
+
+            editingId = id;
+            document.getElementById('enrollmentDate').value = record.enrollmentDate;
+            document.getElementById('memberName').value = record.memberName;
+            document.getElementById('dob').value = record.dob;
+            document.getElementById('clientId').value = record.clientId;
+            document.getElementById('phoneNumber').value = record.phoneNumber;
+            document.getElementById('healthPlan').value = record.healthPlan;
+            document.getElementById('referralType').value = record.referralType;
+            document.getElementById('referredBy').value = record.referredBy;
+            document.getElementById('location').value = record.location;
+            document.getElementById('primaryPOF').value = record.primaryPOF;
+            document.getElementById('secondaryPOF').value = record.secondaryPOF;
+            document.getElementById('carePlan').value = record.carePlan;
+            document.getElementById('referralStatus').value = record.referralStatus;
+            document.getElementById('notes').value = record.notes;
+
+            // Switch to entry tab
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-tab="entry"]').classList.add('active');
+            document.querySelectorAll('.dashboard-section, .entry-section, .records-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('entry').classList.add('active');
+
+            showToast('Editing record - make changes and save', 'success');
+        }
+
+        function deleteRecord(id) {
+            if (!confirm('Are you sure you want to delete this record?')) return;
+
+            referrals = referrals.filter(r => r.id !== id);
+            localStorage.setItem('calAimReferrals', JSON.stringify(referrals));
+            updateDashboard();
+            renderRecords();
+            showToast('Record deleted', 'success');
+        }
+
+        function exportToCSV() {
+            if (referrals.length === 0) {
+                showToast('No records to export', 'error');
+                return;
+            }
+
+            const headers = ['Enrollment Date', 'Member Name', 'DOB', 'Client ID', 'Phone', 'Health Plan', 'Referral Type', 'Referred By', 'Location', 'Primary POF', 'Secondary POF', 'Care Plan', 'Status', 'Worker', 'Notes'];
+            const rows = referrals.map(r => [
+                r.enrollmentDate, r.memberName, r.dob, r.clientId, r.phoneNumber, r.healthPlan, r.referralType, r.referredBy, r.location, r.primaryPOF, r.secondaryPOF, r.carePlan, r.referralStatus, r.worker, r.notes
+            ]);
+
+            const csv = [headers, ...rows].map(row => row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cal-aim-referrals-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('CSV exported successfully', 'success');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>
