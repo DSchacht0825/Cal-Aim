@@ -1025,7 +1025,7 @@
 
     <script>
         // Supabase client
-        let supabase = null;
+        let db = null;
         let currentWorker = localStorage.getItem('currentWorker') || '';
         let dateFilter = { from: null, to: null, worker: null };
         let currentPage = 1;
@@ -1089,12 +1089,12 @@
             try {
                 showLoading(true);
                 console.log('Creating Supabase client...');
-                supabase = window.supabase.createClient(url, key);
+                db = window.supabase.createClient(url, key);
                 console.log('Supabase client created');
 
                 // Test connection
                 console.log('Testing connection to referrals table...');
-                const { data, error } = await supabase.from('referrals').select('id').limit(1);
+                const { data, error } = await db.from('referrals').select('id').limit(1);
 
                 console.log('Response - data:', data, 'error:', error);
 
@@ -1158,10 +1158,10 @@
 
         // Load data from Supabase
         async function loadData() {
-            if (!supabase) return;
+            if (!db) return;
 
             try {
-                let query = supabase.from('referrals').select('*');
+                let query = db.from('referrals').select('*');
 
                 // Apply filters
                 if (dateFilter.from) {
@@ -1196,7 +1196,7 @@
                 return;
             }
 
-            if (!supabase) {
+            if (!db) {
                 showToast('Not connected to database', 'error');
                 return;
             }
@@ -1225,7 +1225,7 @@
                 showLoading(true);
 
                 if (editingId) {
-                    const { error } = await supabase
+                    const { error } = await db
                         .from('referrals')
                         .update(referral)
                         .eq('id', editingId);
@@ -1233,7 +1233,7 @@
                     if (error) throw error;
                     showToast('Referral updated successfully', 'success');
                 } else {
-                    const { error } = await supabase
+                    const { error } = await db
                         .from('referrals')
                         .insert([referral]);
 
@@ -1441,7 +1441,7 @@
 
             try {
                 showLoading(true);
-                const { error } = await supabase
+                const { error } = await db
                     .from('referrals')
                     .delete()
                     .eq('id', id);
