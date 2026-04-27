@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cal-AIM CHW Referral Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -15,6 +16,74 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: #f0f2f5;
             min-height: 100vh;
+        }
+
+        /* Setup Modal */
+        .setup-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .setup-modal.hidden {
+            display: none;
+        }
+
+        .setup-content {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .setup-content h2 {
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .setup-content p {
+            color: #666;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .setup-content .form-group {
+            margin-bottom: 16px;
+        }
+
+        .setup-content label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .setup-content input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .setup-content .btn {
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        .setup-content .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
         }
 
         .header {
@@ -30,6 +99,35 @@
         .header h1 {
             font-size: 24px;
             font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffc107;
+        }
+
+        .status-dot.connected {
+            background: #4caf50;
+        }
+
+        .status-dot.error {
+            background: #f44336;
         }
 
         .worker-select {
@@ -86,6 +184,37 @@
             background: #e8e8e8;
         }
 
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1500;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Dashboard Cards */
         .dashboard-section {
             display: none;
@@ -103,6 +232,7 @@
             display: flex;
             gap: 20px;
             align-items: center;
+            flex-wrap: wrap;
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
 
@@ -111,7 +241,8 @@
             color: #666;
         }
 
-        .date-filter input {
+        .date-filter input,
+        .date-filter select {
             padding: 10px 14px;
             border: 1px solid #ddd;
             border-radius: 6px;
@@ -364,6 +495,11 @@
             background: #ddd;
         }
 
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         /* Records Table */
         .records-section {
             display: none;
@@ -386,6 +522,8 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .table-header h2 {
@@ -396,6 +534,7 @@
         .search-box {
             display: flex;
             gap: 12px;
+            flex-wrap: wrap;
         }
 
         .search-box input {
@@ -428,6 +567,11 @@
             color: #666;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            cursor: pointer;
+        }
+
+        th:hover {
+            background: #eee;
         }
 
         td {
@@ -450,6 +594,7 @@
         .status-active { background: #e6f4ea; color: #1e7e34; }
         .status-discharged { background: #f8d7da; color: #721c24; }
         .status-inprocess { background: #fff3cd; color: #856404; }
+        .status-closed { background: #e2e3e5; color: #383d41; }
 
         .action-btn {
             padding: 6px 12px;
@@ -468,6 +613,37 @@
         .action-btn.delete {
             background: #fee8e8;
             color: #dc3545;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f0f0f0;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination span {
+            font-size: 14px;
+            color: #666;
         }
 
         /* Toast notification */
@@ -522,22 +698,57 @@
             .cards-grid {
                 grid-template-columns: 1fr 1fr;
             }
+
+            .date-filter {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Setup Modal -->
+    <div class="setup-modal" id="setupModal">
+        <div class="setup-content">
+            <h2>Connect to Supabase</h2>
+            <p>Enter your Supabase project credentials. Find these in your Supabase dashboard under Settings > API.</p>
+            <div class="form-group">
+                <label for="supabaseUrl">Project URL</label>
+                <input type="text" id="supabaseUrl" placeholder="https://xxxxx.supabase.co">
+                <div class="help-text">Found in Settings > API > Project URL</div>
+            </div>
+            <div class="form-group">
+                <label for="supabaseKey">Anon/Public Key</label>
+                <input type="text" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIs...">
+                <div class="help-text">Found in Settings > API > anon public key</div>
+            </div>
+            <button class="btn btn-primary" onclick="saveSupabaseConfig()">Connect</button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
     <header class="header">
         <h1>Cal-AIM CHW Referral Tracker</h1>
-        <div class="worker-select">
-            <label for="currentWorker">Current Worker:</label>
-            <select id="currentWorker">
-                <option value="">Select Worker</option>
-                <option value="Sabrina">Sabrina</option>
-                <option value="Katrina">Katrina</option>
-                <option value="Deborah">Deborah</option>
-                <option value="Tanyua">Tanyua</option>
-                <option value="Delilah">Delilah</option>
-            </select>
+        <div class="header-right">
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="connectionText">Connecting...</span>
+            </div>
+            <div class="worker-select">
+                <label for="currentWorker">Worker:</label>
+                <select id="currentWorker">
+                    <option value="">Select Worker</option>
+                    <option value="Sabrina">Sabrina</option>
+                    <option value="Katrina">Katrina</option>
+                    <option value="Deborah">Deborah</option>
+                    <option value="Tanyua">Tanyua</option>
+                    <option value="Delilah">Delilah</option>
+                </select>
+            </div>
         </div>
     </header>
 
@@ -555,6 +766,15 @@
                 <input type="date" id="dateFrom">
                 <label>To:</label>
                 <input type="date" id="dateTo">
+                <label>Worker:</label>
+                <select id="filterWorker">
+                    <option value="">All Workers</option>
+                    <option value="Sabrina">Sabrina</option>
+                    <option value="Katrina">Katrina</option>
+                    <option value="Deborah">Deborah</option>
+                    <option value="Tanyua">Tanyua</option>
+                    <option value="Delilah">Delilah</option>
+                </select>
                 <button onclick="applyDateFilter()">Apply Filter</button>
                 <button class="reset-btn" onclick="resetDateFilter()">Reset</button>
             </div>
@@ -566,7 +786,7 @@
                         <div class="card-icon blue">&#128203;</div>
                     </div>
                     <div class="card-value" id="totalReferrals">0</div>
-                    <div class="card-subtitle">All time</div>
+                    <div class="card-subtitle" id="totalSubtitle">All time</div>
                 </div>
 
                 <div class="card">
@@ -632,8 +852,9 @@
         <!-- Data Entry Section -->
         <section class="entry-section" id="entry">
             <div class="form-card">
-                <h2>Add New Referral</h2>
+                <h2 id="formTitle">Add New Referral</h2>
                 <form id="referralForm">
+                    <input type="hidden" id="editingId">
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="enrollmentDate">Enrollment Date *</label>
@@ -749,8 +970,8 @@
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Save Referral</button>
-                        <button type="reset" class="btn btn-secondary">Clear Form</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Save Referral</button>
+                        <button type="button" class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -762,7 +983,7 @@
                 <div class="table-header">
                     <h2>All Referral Records</h2>
                     <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="Search records..." onkeyup="filterRecords()">
+                        <input type="text" id="searchInput" placeholder="Search records..." onkeyup="debounceSearch()">
                         <button class="btn btn-primary" onclick="exportToCSV()">Export CSV</button>
                     </div>
                 </div>
@@ -770,19 +991,24 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Member</th>
-                                <th>Health Plan</th>
-                                <th>Type</th>
-                                <th>Location</th>
-                                <th>Worker</th>
-                                <th>Status</th>
+                                <th onclick="sortRecords('enrollment_date')">Date</th>
+                                <th onclick="sortRecords('member_name')">Member</th>
+                                <th onclick="sortRecords('health_plan')">Health Plan</th>
+                                <th onclick="sortRecords('referral_type')">Type</th>
+                                <th onclick="sortRecords('location')">Location</th>
+                                <th onclick="sortRecords('worker')">Worker</th>
+                                <th onclick="sortRecords('referral_status')">Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="recordsTable">
                         </tbody>
                     </table>
+                </div>
+                <div class="pagination">
+                    <button onclick="prevPage()" id="prevBtn" disabled>Previous</button>
+                    <span id="pageInfo">Page 1</span>
+                    <button onclick="nextPage()" id="nextBtn">Next</button>
                 </div>
             </div>
         </section>
@@ -791,21 +1017,98 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        // Data storage
-        let referrals = JSON.parse(localStorage.getItem('calAimReferrals')) || [];
+        // Supabase client
+        let supabase = null;
         let currentWorker = localStorage.getItem('currentWorker') || '';
-        let dateFilter = { from: null, to: null };
-        let editingId = null;
+        let dateFilter = { from: null, to: null, worker: null };
+        let currentPage = 1;
+        const pageSize = 20;
+        let sortColumn = 'enrollment_date';
+        let sortAsc = false;
+        let searchTimeout = null;
+        let allReferrals = [];
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            const config = getSupabaseConfig();
+            if (config) {
+                await initSupabase(config.url, config.key);
+            }
+
             if (currentWorker) {
                 document.getElementById('currentWorker').value = currentWorker;
             }
             document.getElementById('enrollmentDate').valueAsDate = new Date();
-            updateDashboard();
-            renderRecords();
         });
+
+        function getSupabaseConfig() {
+            const url = localStorage.getItem('supabaseUrl');
+            const key = localStorage.getItem('supabaseKey');
+            if (url && key) {
+                document.getElementById('setupModal').classList.add('hidden');
+                return { url, key };
+            }
+            return null;
+        }
+
+        async function saveSupabaseConfig() {
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
+
+            if (!url || !key) {
+                showToast('Please enter both URL and Key', 'error');
+                return;
+            }
+
+            localStorage.setItem('supabaseUrl', url);
+            localStorage.setItem('supabaseKey', key);
+
+            await initSupabase(url, key);
+        }
+
+        async function initSupabase(url, key) {
+            try {
+                showLoading(true);
+                supabase = window.supabase.createClient(url, key);
+
+                // Test connection
+                const { data, error } = await supabase.from('referrals').select('id').limit(1);
+
+                if (error) throw error;
+
+                document.getElementById('setupModal').classList.add('hidden');
+                updateConnectionStatus(true);
+                await loadData();
+                showToast('Connected to database', 'success');
+            } catch (error) {
+                console.error('Connection error:', error);
+                updateConnectionStatus(false);
+                showToast('Connection failed: ' + error.message, 'error');
+                // Show setup modal again
+                document.getElementById('setupModal').classList.remove('hidden');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('connectionText');
+
+            if (connected) {
+                dot.classList.add('connected');
+                dot.classList.remove('error');
+                text.textContent = 'Connected';
+            } else {
+                dot.classList.add('error');
+                dot.classList.remove('connected');
+                text.textContent = 'Disconnected';
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+        }
 
         // Tab switching
         document.querySelectorAll('.tab').forEach(tab => {
@@ -823,11 +1126,44 @@
         document.getElementById('currentWorker').addEventListener('change', (e) => {
             currentWorker = e.target.value;
             localStorage.setItem('currentWorker', currentWorker);
-            showToast('Worker set to ' + currentWorker, 'success');
+            if (currentWorker) {
+                showToast('Worker set to ' + currentWorker, 'success');
+            }
         });
 
+        // Load data from Supabase
+        async function loadData() {
+            if (!supabase) return;
+
+            try {
+                let query = supabase.from('referrals').select('*');
+
+                // Apply filters
+                if (dateFilter.from) {
+                    query = query.gte('enrollment_date', dateFilter.from);
+                }
+                if (dateFilter.to) {
+                    query = query.lte('enrollment_date', dateFilter.to);
+                }
+                if (dateFilter.worker) {
+                    query = query.eq('worker', dateFilter.worker);
+                }
+
+                const { data, error } = await query.order(sortColumn, { ascending: sortAsc });
+
+                if (error) throw error;
+
+                allReferrals = data || [];
+                updateDashboard();
+                renderRecords();
+            } catch (error) {
+                console.error('Load error:', error);
+                showToast('Failed to load data', 'error');
+            }
+        }
+
         // Form submission
-        document.getElementById('referralForm').addEventListener('submit', (e) => {
+        document.getElementById('referralForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             if (!currentWorker) {
@@ -835,84 +1171,109 @@
                 return;
             }
 
-            const referral = {
-                id: editingId || Date.now(),
-                enrollmentDate: document.getElementById('enrollmentDate').value,
-                memberName: document.getElementById('memberName').value,
-                dob: document.getElementById('dob').value,
-                clientId: document.getElementById('clientId').value,
-                phoneNumber: document.getElementById('phoneNumber').value,
-                healthPlan: document.getElementById('healthPlan').value,
-                referralType: document.getElementById('referralType').value,
-                referredBy: document.getElementById('referredBy').value,
-                location: document.getElementById('location').value,
-                primaryPOF: document.getElementById('primaryPOF').value,
-                secondaryPOF: document.getElementById('secondaryPOF').value,
-                carePlan: document.getElementById('carePlan').value,
-                referralStatus: document.getElementById('referralStatus').value,
-                notes: document.getElementById('notes').value,
-                worker: currentWorker,
-                createdAt: editingId ? referrals.find(r => r.id === editingId)?.createdAt : new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-
-            if (editingId) {
-                const index = referrals.findIndex(r => r.id === editingId);
-                referrals[index] = referral;
-                editingId = null;
-                showToast('Referral updated successfully', 'success');
-            } else {
-                referrals.push(referral);
-                showToast('Referral saved successfully', 'success');
+            if (!supabase) {
+                showToast('Not connected to database', 'error');
+                return;
             }
 
-            localStorage.setItem('calAimReferrals', JSON.stringify(referrals));
+            const editingId = document.getElementById('editingId').value;
+
+            const referral = {
+                enrollment_date: document.getElementById('enrollmentDate').value,
+                member_name: document.getElementById('memberName').value,
+                dob: document.getElementById('dob').value || null,
+                client_id: document.getElementById('clientId').value || null,
+                phone_number: document.getElementById('phoneNumber').value || null,
+                health_plan: document.getElementById('healthPlan').value,
+                referral_type: document.getElementById('referralType').value,
+                referred_by: document.getElementById('referredBy').value || null,
+                location: document.getElementById('location').value,
+                primary_pof: document.getElementById('primaryPOF').value,
+                secondary_pof: document.getElementById('secondaryPOF').value || null,
+                care_plan: document.getElementById('carePlan').value || null,
+                referral_status: document.getElementById('referralStatus').value,
+                notes: document.getElementById('notes').value || null,
+                worker: currentWorker
+            };
+
+            try {
+                showLoading(true);
+
+                if (editingId) {
+                    const { error } = await supabase
+                        .from('referrals')
+                        .update(referral)
+                        .eq('id', editingId);
+
+                    if (error) throw error;
+                    showToast('Referral updated successfully', 'success');
+                } else {
+                    const { error } = await supabase
+                        .from('referrals')
+                        .insert([referral]);
+
+                    if (error) throw error;
+                    showToast('Referral saved successfully', 'success');
+                }
+
+                cancelEdit();
+                await loadData();
+            } catch (error) {
+                console.error('Save error:', error);
+                showToast('Failed to save: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        function cancelEdit() {
+            document.getElementById('editingId').value = '';
+            document.getElementById('formTitle').textContent = 'Add New Referral';
             document.getElementById('referralForm').reset();
             document.getElementById('enrollmentDate').valueAsDate = new Date();
-            updateDashboard();
-            renderRecords();
-        });
+        }
 
         // Date filter
         function applyDateFilter() {
-            dateFilter.from = document.getElementById('dateFrom').value;
-            dateFilter.to = document.getElementById('dateTo').value;
-            updateDashboard();
+            dateFilter.from = document.getElementById('dateFrom').value || null;
+            dateFilter.to = document.getElementById('dateTo').value || null;
+            dateFilter.worker = document.getElementById('filterWorker').value || null;
+            loadData();
             showToast('Filter applied', 'success');
         }
 
         function resetDateFilter() {
-            dateFilter = { from: null, to: null };
+            dateFilter = { from: null, to: null, worker: null };
             document.getElementById('dateFrom').value = '';
             document.getElementById('dateTo').value = '';
-            updateDashboard();
+            document.getElementById('filterWorker').value = '';
+            loadData();
             showToast('Filter reset', 'success');
-        }
-
-        function getFilteredReferrals() {
-            return referrals.filter(r => {
-                if (dateFilter.from && r.enrollmentDate < dateFilter.from) return false;
-                if (dateFilter.to && r.enrollmentDate > dateFilter.to) return false;
-                return true;
-            });
         }
 
         // Dashboard update
         function updateDashboard() {
-            const filtered = getFilteredReferrals();
+            const data = allReferrals;
 
             // Summary cards
-            document.getElementById('totalReferrals').textContent = filtered.length;
-            document.getElementById('activeReferrals').textContent = filtered.filter(r => r.referralStatus === 'Active').length;
-            document.getElementById('inProcessReferrals').textContent = filtered.filter(r => r.referralStatus === 'In Process').length;
-            document.getElementById('approvedReferrals').textContent = filtered.filter(r => r.carePlan === 'Approved').length;
-            document.getElementById('dischargedReferrals').textContent = filtered.filter(r => r.referralStatus === 'Discharged').length;
+            document.getElementById('totalReferrals').textContent = data.length;
+            document.getElementById('activeReferrals').textContent = data.filter(r => r.referral_status === 'Active').length;
+            document.getElementById('inProcessReferrals').textContent = data.filter(r => r.referral_status === 'In Process').length;
+            document.getElementById('approvedReferrals').textContent = data.filter(r => r.care_plan === 'Approved').length;
+            document.getElementById('dischargedReferrals').textContent = data.filter(r => r.referral_status === 'Discharged').length;
+
+            // Update subtitle based on filters
+            let subtitle = 'All time';
+            if (dateFilter.from || dateFilter.to) {
+                subtitle = `${dateFilter.from || 'Start'} to ${dateFilter.to || 'Now'}`;
+            }
+            document.getElementById('totalSubtitle').textContent = subtitle;
 
             // Charts
-            renderBarChart('healthPlanChart', groupBy(filtered, 'healthPlan'), ['#667eea', '#764ba2', '#f093fb', '#f5576c']);
-            renderBarChart('locationChart', groupBy(filtered, 'location'), ['#4facfe', '#00f2fe', '#43e97b', '#38f9d7']);
-            renderBarChart('workerChart', groupBy(filtered, 'worker'), ['#fa709a', '#fee140', '#30cfd0', '#667eea']);
-            renderBarChart('typeChart', groupBy(filtered, 'referralType'), ['#a18cd1', '#fbc2eb', '#ffecd2', '#fcb69f']);
+            renderBarChart('healthPlanChart', groupBy(data, 'health_plan'), ['#667eea', '#764ba2', '#f093fb', '#f5576c']);
+            renderBarChart('locationChart', groupBy(data, 'location'), ['#4facfe', '#00f2fe', '#43e97b', '#38f9d7']);
+            renderBarChart('workerChart', groupBy(data, 'worker'), ['#fa709a', '#fee140', '#30cfd0', '#667eea', '#764ba2']);
+            renderBarChart('typeChart', groupBy(data, 'referral_type'), ['#a18cd1', '#fbc2eb', '#ffecd2', '#fcb69f']);
         }
 
         function groupBy(arr, key) {
@@ -944,25 +1305,44 @@
         // Records table
         function renderRecords() {
             const tbody = document.getElementById('recordsTable');
-            const sorted = [...referrals].sort((a, b) => new Date(b.enrollmentDate) - new Date(a.enrollmentDate));
+            const search = document.getElementById('searchInput').value.toLowerCase();
 
-            tbody.innerHTML = sorted.length === 0
-                ? '<tr><td colspan="8" style="text-align: center; color: #888;">No records yet</td></tr>'
-                : sorted.map(r => `
-                    <tr data-id="${r.id}">
-                        <td>${formatDate(r.enrollmentDate)}</td>
-                        <td>${r.memberName}</td>
-                        <td>${r.healthPlan}</td>
-                        <td>${r.referralType}</td>
-                        <td>${r.location}</td>
-                        <td>${r.worker}</td>
-                        <td><span class="status-badge status-${r.referralStatus.toLowerCase().replace(' ', '')}">${r.referralStatus}</span></td>
+            let filtered = allReferrals;
+            if (search) {
+                filtered = allReferrals.filter(r =>
+                    r.member_name?.toLowerCase().includes(search) ||
+                    r.health_plan?.toLowerCase().includes(search) ||
+                    r.location?.toLowerCase().includes(search) ||
+                    r.worker?.toLowerCase().includes(search)
+                );
+            }
+
+            const totalPages = Math.ceil(filtered.length / pageSize);
+            const start = (currentPage - 1) * pageSize;
+            const paged = filtered.slice(start, start + pageSize);
+
+            tbody.innerHTML = paged.length === 0
+                ? '<tr><td colspan="8" style="text-align: center; color: #888;">No records found</td></tr>'
+                : paged.map(r => `
+                    <tr>
+                        <td>${formatDate(r.enrollment_date)}</td>
+                        <td>${r.member_name || ''}</td>
+                        <td>${r.health_plan || ''}</td>
+                        <td>${r.referral_type || ''}</td>
+                        <td>${r.location || ''}</td>
+                        <td>${r.worker || ''}</td>
+                        <td><span class="status-badge status-${(r.referral_status || '').toLowerCase().replace(' ', '')}">${r.referral_status || ''}</span></td>
                         <td>
-                            <button class="action-btn edit" onclick="editRecord(${r.id})">Edit</button>
-                            <button class="action-btn delete" onclick="deleteRecord(${r.id})">Delete</button>
+                            <button class="action-btn edit" onclick="editRecord('${r.id}')">Edit</button>
+                            <button class="action-btn delete" onclick="deleteRecord('${r.id}')">Delete</button>
                         </td>
                     </tr>
                 `).join('');
+
+            // Update pagination
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages || 1}`;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
         }
 
         function formatDate(dateStr) {
@@ -971,34 +1351,56 @@
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
 
-        function filterRecords() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('#recordsTable tr');
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(search) ? '' : 'none';
-            });
+        function sortRecords(column) {
+            if (sortColumn === column) {
+                sortAsc = !sortAsc;
+            } else {
+                sortColumn = column;
+                sortAsc = true;
+            }
+            loadData();
         }
 
-        function editRecord(id) {
-            const record = referrals.find(r => r.id === id);
+        function debounceSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentPage = 1;
+                renderRecords();
+            }, 300);
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderRecords();
+            }
+        }
+
+        function nextPage() {
+            currentPage++;
+            renderRecords();
+        }
+
+        async function editRecord(id) {
+            const record = allReferrals.find(r => r.id === id);
             if (!record) return;
 
-            editingId = id;
-            document.getElementById('enrollmentDate').value = record.enrollmentDate;
-            document.getElementById('memberName').value = record.memberName;
-            document.getElementById('dob').value = record.dob;
-            document.getElementById('clientId').value = record.clientId;
-            document.getElementById('phoneNumber').value = record.phoneNumber;
-            document.getElementById('healthPlan').value = record.healthPlan;
-            document.getElementById('referralType').value = record.referralType;
-            document.getElementById('referredBy').value = record.referredBy;
-            document.getElementById('location').value = record.location;
-            document.getElementById('primaryPOF').value = record.primaryPOF;
-            document.getElementById('secondaryPOF').value = record.secondaryPOF;
-            document.getElementById('carePlan').value = record.carePlan;
-            document.getElementById('referralStatus').value = record.referralStatus;
-            document.getElementById('notes').value = record.notes;
+            document.getElementById('editingId').value = id;
+            document.getElementById('formTitle').textContent = 'Edit Referral';
+            document.getElementById('enrollmentDate').value = record.enrollment_date || '';
+            document.getElementById('memberName').value = record.member_name || '';
+            document.getElementById('dob').value = record.dob || '';
+            document.getElementById('clientId').value = record.client_id || '';
+            document.getElementById('phoneNumber').value = record.phone_number || '';
+            document.getElementById('healthPlan').value = record.health_plan || '';
+            document.getElementById('referralType').value = record.referral_type || '';
+            document.getElementById('referredBy').value = record.referred_by || '';
+            document.getElementById('location').value = record.location || '';
+            document.getElementById('primaryPOF').value = record.primary_pof || '';
+            document.getElementById('secondaryPOF').value = record.secondary_pof || '';
+            document.getElementById('carePlan').value = record.care_plan || '';
+            document.getElementById('referralStatus').value = record.referral_status || '';
+            document.getElementById('notes').value = record.notes || '';
 
             // Switch to entry tab
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1006,31 +1408,43 @@
             document.querySelectorAll('.dashboard-section, .entry-section, .records-section').forEach(s => s.classList.remove('active'));
             document.getElementById('entry').classList.add('active');
 
-            showToast('Editing record - make changes and save', 'success');
+            showToast('Editing record', 'success');
         }
 
-        function deleteRecord(id) {
+        async function deleteRecord(id) {
             if (!confirm('Are you sure you want to delete this record?')) return;
 
-            referrals = referrals.filter(r => r.id !== id);
-            localStorage.setItem('calAimReferrals', JSON.stringify(referrals));
-            updateDashboard();
-            renderRecords();
-            showToast('Record deleted', 'success');
+            try {
+                showLoading(true);
+                const { error } = await supabase
+                    .from('referrals')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                await loadData();
+                showToast('Record deleted', 'success');
+            } catch (error) {
+                console.error('Delete error:', error);
+                showToast('Failed to delete: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
         }
 
-        function exportToCSV() {
-            if (referrals.length === 0) {
+        async function exportToCSV() {
+            if (allReferrals.length === 0) {
                 showToast('No records to export', 'error');
                 return;
             }
 
-            const headers = ['Enrollment Date', 'Member Name', 'DOB', 'Client ID', 'Phone', 'Health Plan', 'Referral Type', 'Referred By', 'Location', 'Primary POF', 'Secondary POF', 'Care Plan', 'Status', 'Worker', 'Notes'];
-            const rows = referrals.map(r => [
-                r.enrollmentDate, r.memberName, r.dob, r.clientId, r.phoneNumber, r.healthPlan, r.referralType, r.referredBy, r.location, r.primaryPOF, r.secondaryPOF, r.carePlan, r.referralStatus, r.worker, r.notes
+            const headers = ['Enrollment Date', 'Member Name', 'DOB', 'Client ID', 'Phone', 'Health Plan', 'Referral Type', 'Referred By', 'Location', 'Primary POF', 'Secondary POF', 'Care Plan', 'Status', 'Worker', 'Notes', 'Created At'];
+            const rows = allReferrals.map(r => [
+                r.enrollment_date, r.member_name, r.dob, r.client_id, r.phone_number, r.health_plan, r.referral_type, r.referred_by, r.location, r.primary_pof, r.secondary_pof, r.care_plan, r.referral_status, r.worker, r.notes, r.created_at
             ]);
 
-            const csv = [headers, ...rows].map(row => row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+            const csv = [headers, ...rows].map(row => row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
