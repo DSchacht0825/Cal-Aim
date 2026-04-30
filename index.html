@@ -294,6 +294,16 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
 
+        .card.clickable {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card.clickable:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+
         .card-header {
             display: flex;
             justify-content: space-between;
@@ -787,7 +797,7 @@
             </div>
 
             <div class="cards-grid">
-                <div class="card">
+                <div class="card clickable" onclick="filterByCard('all')">
                     <div class="card-header">
                         <span class="card-title">Total Referrals</span>
                         <div class="card-icon blue">&#128203;</div>
@@ -796,7 +806,7 @@
                     <div class="card-subtitle" id="totalSubtitle">All time</div>
                 </div>
 
-                <div class="card">
+                <div class="card clickable" onclick="filterByCard('Active')">
                     <div class="card-header">
                         <span class="card-title">Active</span>
                         <div class="card-icon green">&#10003;</div>
@@ -805,7 +815,7 @@
                     <div class="card-subtitle">Currently enrolled</div>
                 </div>
 
-                <div class="card">
+                <div class="card clickable" onclick="filterByCard('In Process')">
                     <div class="card-header">
                         <span class="card-title">In Process</span>
                         <div class="card-icon orange">&#8987;</div>
@@ -814,7 +824,7 @@
                     <div class="card-subtitle">Pending approval</div>
                 </div>
 
-                <div class="card">
+                <div class="card clickable" onclick="filterByCard('Approved')">
                     <div class="card-header">
                         <span class="card-title">Approved</span>
                         <div class="card-icon purple">&#128077;</div>
@@ -823,7 +833,7 @@
                     <div class="card-subtitle">Care plans approved</div>
                 </div>
 
-                <div class="card">
+                <div class="card clickable" onclick="filterByCard('Discharged')">
                     <div class="card-header">
                         <span class="card-title">Discharged</span>
                         <div class="card-icon red">&#128682;</div>
@@ -1273,8 +1283,31 @@
             document.getElementById('dateFrom').value = '';
             document.getElementById('dateTo').value = '';
             document.getElementById('filterWorker').value = '';
+            cardFilter = null;
             loadData();
             showToast('Filter reset', 'success');
+        }
+
+        // Card filter
+        let cardFilter = null;
+
+        function filterByCard(filter) {
+            cardFilter = filter === 'all' ? null : filter;
+
+            // Switch to records tab
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-tab="records"]').classList.add('active');
+            document.querySelectorAll('.dashboard-section, .entry-section, .records-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('records').classList.add('active');
+
+            // Update search input to show filter
+            document.getElementById('searchInput').value = '';
+
+            currentPage = 1;
+            renderRecords();
+
+            const filterName = filter === 'all' ? 'All Referrals' : filter;
+            showToast('Showing: ' + filterName, 'success');
         }
 
         // Dashboard update
@@ -1334,8 +1367,19 @@
             const search = document.getElementById('searchInput').value.toLowerCase();
 
             let filtered = allReferrals;
+
+            // Apply card filter
+            if (cardFilter) {
+                if (cardFilter === 'Approved') {
+                    filtered = filtered.filter(r => r.care_plan === 'Approved');
+                } else {
+                    filtered = filtered.filter(r => r.referral_status === cardFilter);
+                }
+            }
+
+            // Apply search filter
             if (search) {
-                filtered = allReferrals.filter(r =>
+                filtered = filtered.filter(r =>
                     r.member_name?.toLowerCase().includes(search) ||
                     r.health_plan?.toLowerCase().includes(search) ||
                     r.location?.toLowerCase().includes(search) ||
