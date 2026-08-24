@@ -34,9 +34,12 @@ CREATE TABLE workers (
 
 -- Insert the workers
 INSERT INTO workers (name) VALUES
+    ('Cory'),
     ('Sabrina'),
+    ('Sabrina B.'),
     ('Katrina'),
     ('Deborah'),
+    ('Kimmy'),
     ('Tanyua'),
     ('Delilah');
 
